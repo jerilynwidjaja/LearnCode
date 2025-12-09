@@ -58,12 +58,12 @@ export class CourseService {
   };
 
   static async getAllCourses(): Promise<Course[]> {
-    const response = await axios.get('http://localhost:8080/api/courses');
+    const response = await axios.get('http://44.222.214.241:8080/api/courses');
     return this.addThumbnailsToCourses(response.data.courses);
   }
 
   static async getRecommendedCourses(forceRefresh?: boolean): Promise<RecommendationResponse> {
-    const response = await axios.get('http://localhost:8080/api/courses/recommended', {
+    const response = await axios.get('http://44.222.214.241:8080/api/courses/recommended', {
       params: { forceRefresh }
     });
     return {
@@ -73,7 +73,7 @@ export class CourseService {
   }
 
   static async getCourseById(id: string): Promise<Course> {
-    const response = await axios.get(`http://localhost:8080/api/courses/${id}`);
+    const response = await axios.get(`http://44.222.214.241:8080/api/courses/${id}`);
     const course = response.data.course;
     return {
       ...course,
