@@ -358,38 +358,63 @@ export class CourseService {
       });
 
       console.log('Found courses for recommendations:', allCourses.map(c => ({ id: c.id, title: c.title })));
+      
       const userProgress = await UserProgress.findAll({
         where: { userId }
       });
 
       // Get AI recommendations
-      const result = await AIRecommendationService.generateRecommendations(
+      const aiResult = await AIRecommendationService.generateRecommendations(
         user, 
         allCourses, 
         userProgress,
         forceRefresh
       );
 
-      // Add progress to recommended courses
-      const coursesWithProgress = await Promise.all(
-        result.recommendations.map(async (course) => {
+      // aiResult contains: { recommendations: [...courses], metadata, aiResponse, rawAiResponse }
+      // aiResponse contains: { recommendations: [{courseId, score, reasoning, ...}], overallStrategy, learningPath }
+
+      // Merge AI metadata into course objects
+      const coursesWithAIData = await Promise.all(
+        aiResult.recommendations.map(async (course) => {
           if (!course || !course.id) {
             console.error('Invalid course in recommendations:', course);
             return null;
           }
+
+          // Find the AI recommendation for this course
+          const aiRec = aiResult.aiResponse?.recommendations?.find(
+            rec => rec.courseId === course.id
+          );
+
+          // Calculate progress
           const progress = await this.calculateCourseProgress(course.id, userId);
-          return {
+
+          // Merge course data with AI metadata
+          const enrichedCourse = {
             ...course,
             progress
           };
+
+          // Add AI fields if AI was used
+          if (aiRec && aiResult.metadata.aiUsed) {
+            enrichedCourse.aiScore = aiRec.score;
+            enrichedCourse.aiReasoning = aiRec.reasoning;
+            enrichedCourse.aiSkillAlignment = aiRec.skillAlignment;
+            enrichedCourse.aiGoalAlignment = aiRec.goalAlignment;
+            enrichedCourse.aiCareerImpact = aiRec.careerImpact;
+            enrichedCourse.aiExpectedOutcome = aiRec.expectedOutcome;
+          }
+
+          return enrichedCourse;
         })
       );
 
       return {
-        courses: coursesWithProgress.filter(Boolean),
-        metadata: result.metadata,
-        aiResponse: result.aiResponse,
-        rawAiResponse: result.rawAiResponse
+        courses: coursesWithAIData.filter(Boolean),
+        metadata: aiResult.metadata,
+        aiResponse: aiResult.aiResponse,
+        rawAiResponse: aiResult.rawAiResponse
       };
 
     } catch (error) {
@@ -411,14 +436,6 @@ export class CourseService {
     }
 
     const progress = await this.calculateCourseProgress(courseId, userId);
-    
-    if (!user || !user.id) {
-      throw new Error('Valid user object with ID is required');
-    }
-
-    if (!Array.isArray(allCourses)) {
-      throw new Error('allCourses must be an array');
-    }
 
     // Add progress to each question
     const questionsWithProgress = await Promise.all(
@@ -473,6 +490,7 @@ export class CourseService {
 
     const completedQuestions = await UserProgress.count({
       where: { 
+        userId,
         courseId: validCourseId,
         completed: true 
       }

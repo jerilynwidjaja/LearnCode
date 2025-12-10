@@ -468,6 +468,41 @@ const Profile: React.FC = () => {
             </div>
           )}
 
+          {/* Learning Path Strategy - NEW SECTION */}
+          {aiResponse && aiResponse.learningPath && recommendationMetadata?.aiUsed && !aiComputing && (
+            <div className="mb-8 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6 border-2 border-indigo-200 dark:border-indigo-700 shadow-lg">
+              <div className="flex items-center mb-4">
+                <TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mr-2" />
+                <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-200">
+                  📚 Your Personalized Learning Path
+                </h3>
+              </div>
+              
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-300 mb-2">
+                  🎯 Overall Strategy
+                </h4>
+                <p className="text-indigo-700 dark:text-indigo-300 leading-relaxed">
+                  {aiResponse.overallStrategy || aiResponse.strategy}
+                </p>
+              </div>
+              
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-indigo-200 dark:border-indigo-600">
+                <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-300 mb-2">
+                  🗺️ Recommended Progression
+                </h4>
+                <p className="text-sm font-mono text-indigo-900 dark:text-indigo-200 leading-relaxed">
+                  {aiResponse.learningPath}
+                </p>
+              </div>
+              
+              <div className="mt-4 flex items-center text-xs text-indigo-600 dark:text-indigo-400">
+                <Sparkles className="h-3 w-3 mr-1" />
+                <span>This learning path is optimized based on your goals, skill level, and learning preferences</span>
+              </div>
+            </div>
+          )}
+
           {/* AI Recommended Courses */}
           {recommendedCourses.length > 0 && (
             <section className="mb-12">
