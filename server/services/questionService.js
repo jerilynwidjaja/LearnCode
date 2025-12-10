@@ -71,7 +71,7 @@ export class QuestionService {
   static async executeCodeWithJudge0(code, question) {
     try {
       const JUDGE0_API_URL = 'https://judge0-ce.p.rapidapi.com';
-      const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || 'demo-key'; // You'll need to get this from RapidAPI
+      const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '31cd9c8d8bmsh944c840a9e4d4c8p18c539jsn7ae96231294a'; // You'll need to get this from RapidAPI
       
       // Language ID mapping for Judge0
       const languageMap = {
