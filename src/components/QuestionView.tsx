@@ -119,6 +119,18 @@ const QuestionView: React.FC = () => {
                   {languageConfig.name}
                 </span>
               </div>
+              
+              {/* Execution Stats - Only show when result exists */}
+              {result && (result.executionTime || result.memory) && (
+                <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400 ml-4 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                  {result.executionTime && (
+                    <span>⚡ {result.executionTime}ms</span>
+                  )}
+                  {result.memory && (
+                    <span>💾 {result.memory}KB</span>
+                  )}
+                </div>
+              )}
             </div>
             
             <button
@@ -130,17 +142,6 @@ const QuestionView: React.FC = () => {
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               ) : (
                 <Play className="h-4 w-4 mr-2" />
-              )}
-              
-              {(result.executionTime || result.memory) && (
-                <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
-                  {result.executionTime && (
-                    <span>Execution Time: {result.executionTime}ms</span>
-                  )}
-                  {result.memory && (
-                    <span>Memory: {result.memory}KB</span>
-                  )}
-                </div>
               )}
               {executing ? 'Running...' : 'Run Code'}
             </button>
@@ -242,10 +243,30 @@ const QuestionView: React.FC = () => {
                   <h3 className={`font-semibold ${result.passed ? 'text-green-600' : 'text-red-600'}`}>
                     {result.passed ? 'Success! ✨' : 'Failed ❌'}
                   </h3>
-                  <span className="ml-auto text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">
-                    {result.status}
-                  </span>
+                  {result.status && (
+                    <span className="ml-auto text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">
+                      {result.status}
+                    </span>
+                  )}
                 </div>
+                
+                {/* Performance Metrics */}
+                {(result.executionTime || result.memory) && (
+                  <div className="mb-3 flex gap-3 text-sm">
+                    {result.executionTime && (
+                      <div className="flex items-center text-gray-600 dark:text-gray-400">
+                        <span className="font-medium mr-1">⚡ Execution Time:</span>
+                        <span>{result.executionTime}ms</span>
+                      </div>
+                    )}
+                    {result.memory && (
+                      <div className="flex items-center text-gray-600 dark:text-gray-400">
+                        <span className="font-medium mr-1">💾 Memory:</span>
+                        <span>{result.memory}KB</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {result.output && (
                   <div className="mb-3">
