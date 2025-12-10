@@ -131,6 +131,17 @@ const QuestionView: React.FC = () => {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
+              
+              {(result.executionTime || result.memory) && (
+                <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+                  {result.executionTime && (
+                    <span>Execution Time: {result.executionTime}ms</span>
+                  )}
+                  {result.memory && (
+                    <span>Memory: {result.memory}KB</span>
+                  )}
+                </div>
+              )}
               {executing ? 'Running...' : 'Run Code'}
             </button>
           </div>

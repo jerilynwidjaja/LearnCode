@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://44.222.214.241:8080/api';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 export interface LoginCredentials {
   email: string;
@@ -12,6 +12,7 @@ export interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
+  role: 'mentor' | 'mentee';
 }
 
 export interface UserPreferences {

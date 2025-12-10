@@ -159,7 +159,7 @@ A comprehensive e-learning platform with AI-powered course recommendations, pers
 
 7. **Access the application**
    - Frontend: http://localhost:5173
-   - Backend API: http://localhost:5000
+   - Backend API: http://localhost:5001
 
 ## 🎯 Usage
 

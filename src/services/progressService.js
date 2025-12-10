@@ -2,22 +2,22 @@ import axios from 'axios';
 
 export class ProgressService {
   static async getProgressFeedback() {
-    const response = await axios.get('http://44.222.214.241:8080/api/progress/feedback');
+    const response = await axios.get('http://localhost:5001/api/progress/feedback');
     return response.data.feedback;
   }
 
   static async getLearningPath() {
-    const response = await axios.get('http://44.222.214.241:8080/api/progress/learning-path');
+    const response = await axios.get('http://localhost:5001/api/progress/learning-path');
     return response.data.learningPath;
   }
 
   static async getSequentialPath() {
-    const response = await axios.get('http://44.222.214.241:8080/api/progress/sequential-path');
+    const response = await axios.get('http://localhost:5001/api/progress/sequential-path');
     return response.data.sequentialPath;
   }
 
   static async getAnalytics() {
-    const response = await axios.get('http://44.222.214.241:8080/api/progress/analytics');
+    const response = await axios.get('http://localhost:5001/api/progress/analytics');
     return response.data.analytics;
   }
 

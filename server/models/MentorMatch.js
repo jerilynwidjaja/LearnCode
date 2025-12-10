@@ -8,10 +8,18 @@ export default (sequelize, DataTypes) => {
     mentorId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: 'Mentors',
+        key: 'id'
+      }
     },
     menteeId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: 'Mentees',
+        key: 'id'
+      }
     },
     status: {
       type: DataTypes.STRING,

@@ -7,6 +7,7 @@ interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  role?: 'mentor' | 'mentee' | 'both' | 'none';  // ← ADD THIS
   hasPreferences?: boolean;
   careerStage?: string;
   skills?: string[];
@@ -19,7 +20,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string, role: 'mentor' | 'mentee') => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   refreshUserProfile: () => Promise<void>;
@@ -44,12 +45,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = async () => {
     try {
       const userData = await AuthService.getUserProfile();
+      console.log('🔍 User profile fetched:', userData); // ← Add this log
+      
       // Ensure hasPreferences is properly set based on user data
       const hasPreferences = !!(userData.careerStage && userData.level && 
         userData.skills?.length > 0 && userData.learningGoals?.length > 0);
       
       setUser({
-        ...userData,
+        ...userData,  // ← This should include role from backend
         hasPreferences
       });
     } catch (error) {
@@ -78,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userData.skills?.length > 0 && userData.learningGoals?.length > 0);
       
       setUser({
-        ...userData,
+        ...userData,  // ← This should already include role from backend
         hasPreferences
       });
       toast.success('Login successful!');
@@ -88,14 +91,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, firstName: string, lastName: string) => {
+  const register = async (email: string, password: string, firstName: string, lastName: string, role: 'mentor' | 'mentee') => {
     try {
-      const response = await AuthService.register({ email, password, firstName, lastName });
+      const response = await AuthService.register({ email, password, firstName, lastName, role });
       const { token, user: userData } = response;
       
       AuthService.setAuthToken(token);
       setUser({
         ...userData,
+        role, // Include the role in user state
         hasPreferences: false // New users don't have preferences
       });
       toast.success('Registration successful!');
@@ -118,13 +122,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedUser = { ...prev, ...userData };
       
       // Recalculate hasPreferences when user data is updated
-      updatedUser.hasPreferences = !!(
-        updatedUser.careerStage &&
-        updatedUser.level &&
-        updatedUser.skills?.length &&
-        updatedUser.learningGoals?.length
-      );
-
+      if (userData.careerStage || userData.level || userData.skills || userData.learningGoals) {
+        updatedUser.hasPreferences = !!(
+          updatedUser.careerStage && 
+          updatedUser.level && 
+          (updatedUser.skills?.length ?? 0) > 0 && 
+          (updatedUser.learningGoals?.length ?? 0) > 0
+        );
+      }
       
       return updatedUser;
     });

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://44.222.214.241:8080/api';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 export class AuthService {
   static async login(credentials) {

@@ -23,92 +23,49 @@ export default (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    careerStage: {
+    role: {
       type: DataTypes.STRING,
-      allowNull: true,
-    },
-    skills: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      get() {
-        const rawValue = this.getDataValue('skills');
-        return rawValue ? JSON.parse(rawValue) : [];
-      },
-      set(value) {
-        this.setDataValue('skills', JSON.stringify(value));
+      allowNull: false,
+      validate: {
+        isIn: [['mentor', 'mentee', 'both', 'none']]
       }
     },
-    learningGoals: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      get() {
-        const rawValue = this.getDataValue('learningGoals');
-        return rawValue ? JSON.parse(rawValue) : [];
-      },
-      set(value) {
-        this.setDataValue('learningGoals', JSON.stringify(value));
-      }
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
     },
-    timeAvailability: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    level: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    // Mentor-Mentee System Fields
-    yearsOfExperience: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
-    areasOfStrength: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      get() {
-        const rawValue = this.getDataValue('areasOfStrength');
-        return rawValue ? JSON.parse(rawValue) : [];
-      },
-      set(value) {
-        this.setDataValue('areasOfStrength', JSON.stringify(value));
-      }
-    },
-    mentoringExperience: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    languagePreferences: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      get() {
-        const rawValue = this.getDataValue('languagePreferences');
-        return rawValue ? JSON.parse(rawValue) : [];
-      },
-      set(value) {
-        this.setDataValue('languagePreferences', JSON.stringify(value));
-      }
-    },
-    currentLocation: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    joinMentorProgram: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
-    mentorRole: {
-      type: DataTypes.STRING, // 'mentor', 'mentee', 'both'
-      allowNull: true,
-    },
-    bio: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    availability: {
-      type: DataTypes.STRING,
-      allowNull: true,
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
     },
   });
 
+  User.associate = (models) => {
+    User.hasOne(models.Mentor, {
+      foreignKey: 'userId',
+      as: 'mentorProfile',
+      onDelete: 'CASCADE'
+    });
+    
+    User.hasOne(models.Mentee, {
+      foreignKey: 'userId',
+      as: 'menteeProfile',
+      onDelete: 'CASCADE'
+    });
+
+    // For chat messages
+    User.hasMany(models.ChatMessage, {
+      foreignKey: 'senderId',
+      as: 'sentMessages'
+    });
+    
+    User.hasMany(models.ChatMessage, {
+      foreignKey: 'receiverId',
+      as: 'receivedMessages'
+    });
+  };
+  
   return User;
 };
