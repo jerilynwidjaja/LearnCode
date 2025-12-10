@@ -397,7 +397,7 @@ export class CourseService {
   private static readonly CACHE_DURATION = 60 * 60 * 1000; // 1 hour for stability
 
   static async getAllCourses(): Promise<Course[]> {
-    const response = await axios.get('http://localhost:5001/api/courses');
+    const response = await axios.get('http://44.222.214.241:8080/api/courses');
     return this.addThumbnailsToCourses(response.data.courses);
   }
 
@@ -420,7 +420,7 @@ export class CourseService {
 
     try {
       console.log('Fetching fresh recommendations for user:', currentUserId, 'with preferences hash:', userPreferencesHash);
-      const response = await axios.get('http://localhost:5001/api/courses/recommended');
+      const response = await axios.get('http://44.222.214.241:8080/api/courses/recommended');
       const result = {
         ...response.data,
         courses: this.addThumbnailsToCourses(response.data.courses)
@@ -445,7 +445,7 @@ export class CourseService {
   }
 
   static async getCourseById(id: string): Promise<Course> {
-    const response = await axios.get(`http://localhost:5001/api/courses/${id}`);
+    const response = await axios.get(`http://44.222.214.241:8080/api/courses/${id}`);
     const course = response.data.course;
     return {
       ...course,
