@@ -1,4 +1,4 @@
-# AI-Powered E-Learning Platform with Mentor-Mentee Program
+# AI-Powered E-Learning Coding Platform
 
 A comprehensive e-learning platform with AI-powered course recommendations, personalized learning paths, intelligent progress feedback, and an integrated mentor-mentee matching system. Built with modern web technologies and OpenAI integration.
 
