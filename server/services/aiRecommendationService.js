@@ -8,7 +8,7 @@ const openai = new OpenAI({
 });
 
 export class AIRecommendationService {
-  static async generateRecommendations(user, allCourses, userProgress) {
+   async generateRecommendations(user, allCourses, userProgress) {
     try {
 
       const userProfile = {
@@ -66,7 +66,7 @@ export class AIRecommendationService {
     }
   }
 
-  static async generateProgressFeedback(user, userProgress, allCourses, recommendedCourses) {
+   async generateProgressFeedback(user, userProgress, allCourses, recommendedCourses) {
     try {
       const performanceMetrics = this.calculatePerformanceMetrics(recommendedCourses, userProgress);
       
@@ -110,7 +110,7 @@ export class AIRecommendationService {
     }
   }
 
-  static async generateLearningPath(user, recommendedCourses, userProgress) {
+   async generateLearningPath(user, recommendedCourses, userProgress) {
     try {
       const performanceMetrics = this.calculatePerformanceMetrics(recommendedCourses, userProgress);
       
@@ -140,7 +140,7 @@ export class AIRecommendationService {
     }
   }
 
-  static async generateSequentialLearningPath(user, recommendedCourses, userProgress) {
+   async generateSequentialLearningPath(user, recommendedCourses, userProgress) {
     try {
       const performanceMetrics = this.calculatePerformanceMetrics(recommendedCourses, userProgress);
       
@@ -170,7 +170,7 @@ export class AIRecommendationService {
     }
   }
 
-  static createAdvancedFeedbackPrompt(user, progressData) {
+   createAdvancedFeedbackPrompt(user, progressData) {
     return `
 As an advanced AI learning coach, perform a comprehensive analysis of this student's learning patterns and provide sophisticated, data-driven feedback:
 
@@ -231,7 +231,7 @@ Make the feedback clearly demonstrate advanced AI capabilities including:
 `;
   }
 
-  static createRecommendationPrompt(userProfile, courseData, performanceMetrics) {
+   createRecommendationPrompt(userProfile, courseData, performanceMetrics) {
     return `
 Analyze this user's learning profile and recommend exactly 4 courses maximum:
 
@@ -275,7 +275,7 @@ IMPORTANT: Recommend exactly 4 courses maximum, prioritizing quality over quanti
 `;
   }
 
-  static createLearningPathPrompt(user, recommendedCourses, performanceMetrics) {
+   createLearningPathPrompt(user, recommendedCourses, performanceMetrics) {
     return `
 Create a personalized learning path using ONLY the recommended courses:
 
@@ -326,7 +326,7 @@ Use ONLY the provided recommended courses. Design a progressive path that builds
 `;
   }
 
-  static createSequentialPathPrompt(user, recommendedCourses, performanceMetrics) {
+   createSequentialPathPrompt(user, recommendedCourses, performanceMetrics) {
     return `
 Create a sequential learning path using ONLY the recommended courses:
 
@@ -389,7 +389,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
 `;
   }
 
-  static calculatePerformanceMetrics(courses, userProgress) {
+   calculatePerformanceMetrics(courses, userProgress) {
     const categoryPerformance = {};
     let totalQuestions = 0;
     let completedQuestions = 0;
@@ -460,7 +460,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     };
   }
 
-  static calculateLearningVelocity(userProgress) {
+   calculateLearningVelocity(userProgress) {
     const recentProgress = userProgress
       .filter(p => p.completedAt && new Date(p.completedAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
       .length;
@@ -470,7 +470,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     return 'Low';
   }
 
-  static processAIRecommendations(aiResponse, allCourses, userProgress) {
+   processAIRecommendations(aiResponse, allCourses, userProgress) {
     const recommendations = aiResponse.recommendations.slice(0, 4).map(rec => {
       const course = allCourses.find(c => c.id === rec.courseId);
       if (!course) return null;
@@ -512,7 +512,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     };
   }
 
-  static getFactorWeight(factorName) {
+   getFactorWeight(factorName) {
     const weights = {
       goalAlignment: 35,
       levelMatch: 25,
@@ -523,7 +523,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     return weights[factorName] || 10;
   }
 
-  static fallbackMathematicalSequentialPath(user, recommendedCourses, userProgress) {
+   fallbackMathematicalSequentialPath(user, recommendedCourses, userProgress) {
 
     const sortedCourses = recommendedCourses.sort((a, b) => {
       const levelOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
@@ -575,7 +575,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     };
   }
 
-  static fallbackMathematicalLearningPath(user, recommendedCourses, userProgress) {
+   fallbackMathematicalLearningPath(user, recommendedCourses, userProgress) {
     const beginnerCourses = recommendedCourses.filter(c => c.level === 'beginner');
     const intermediateCourses = recommendedCourses.filter(c => c.level === 'intermediate');
     const advancedCourses = recommendedCourses.filter(c => c.level === 'advanced');
@@ -643,7 +643,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     };
   }
 
-  static fallbackDataAnalyticsFeedback(user, userProgress, recommendedCourses) {
+   fallbackDataAnalyticsFeedback(user, userProgress, recommendedCourses) {
     const totalQuestions = userProgress.length;
     const completedQuestions = userProgress.filter(p => p.completed).length;
     const completionRate = totalQuestions > 0 ? Math.round((completedQuestions / totalQuestions) * 100) : 0;
@@ -705,7 +705,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     };
   }
 
-  static fallbackRecommendations(user, allCourses, userProgress) {
+   fallbackRecommendations(user, allCourses, userProgress) {
 
     const scoredCourses = allCourses.map(course => {
       let score = 50; 
