@@ -8,9 +8,8 @@ const openai = new OpenAI({
 });
 
 export class AIRecommendationService {
-   async generateRecommendations(user, allCourses, userProgress) {
+  static async generateRecommendations(user, allCourses, userProgress) {
     try {
-
       const userProfile = {
         level: user.level || 'beginner',
         careerStage: user.careerStage || 'student',
@@ -19,7 +18,7 @@ export class AIRecommendationService {
         timeAvailability: user.timeAvailability || '1-3'
       };
 
-      const performanceMetrics = this.calculatePerformanceMetrics(allCourses, userProgress);
+      const performanceMetrics = AIRecommendationService.calculatePerformanceMetrics(allCourses, userProgress);
 
       const courseData = allCourses.map(course => ({
         id: course.id,
@@ -37,7 +36,7 @@ export class AIRecommendationService {
         }
       }));
 
-      const prompt = this.createRecommendationPrompt(userProfile, courseData, performanceMetrics);
+      const prompt = AIRecommendationService.createRecommendationPrompt(userProfile, courseData, performanceMetrics);
 
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
@@ -57,18 +56,17 @@ export class AIRecommendationService {
 
       const aiResponse = JSON.parse(completion.choices[0].message.content);
       
-      return this.processAIRecommendations(aiResponse, allCourses, userProgress);
+      return AIRecommendationService.processAIRecommendations(aiResponse, allCourses, userProgress);
 
     } catch (error) {
       console.error('AI Recommendation Error:', error);
-
-      return this.fallbackRecommendations(user, allCourses, userProgress);
+      return AIRecommendationService.fallbackRecommendations(user, allCourses, userProgress);
     }
   }
 
-   async generateProgressFeedback(user, userProgress, allCourses, recommendedCourses) {
+  static async generateProgressFeedback(user, userProgress, allCourses, recommendedCourses) {
     try {
-      const performanceMetrics = this.calculatePerformanceMetrics(recommendedCourses, userProgress);
+      const performanceMetrics = AIRecommendationService.calculatePerformanceMetrics(recommendedCourses, userProgress);
       
       const progressData = {
         overallStats: {
@@ -84,7 +82,7 @@ export class AIRecommendationService {
         strengths: performanceMetrics.strongestCategories
       };
 
-      const feedbackPrompt = this.createAdvancedFeedbackPrompt(user, progressData);
+      const feedbackPrompt = AIRecommendationService.createAdvancedFeedbackPrompt(user, progressData);
 
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
@@ -106,15 +104,15 @@ export class AIRecommendationService {
 
     } catch (error) {
       console.error('AI Feedback Error:', error);
-      return this.fallbackDataAnalyticsFeedback(user, userProgress, recommendedCourses);
+      return AIRecommendationService.fallbackDataAnalyticsFeedback(user, userProgress, recommendedCourses);
     }
   }
 
-   async generateLearningPath(user, recommendedCourses, userProgress) {
+  static async generateLearningPath(user, recommendedCourses, userProgress) {
     try {
-      const performanceMetrics = this.calculatePerformanceMetrics(recommendedCourses, userProgress);
+      const performanceMetrics = AIRecommendationService.calculatePerformanceMetrics(recommendedCourses, userProgress);
       
-      const pathPrompt = this.createLearningPathPrompt(user, recommendedCourses, performanceMetrics);
+      const pathPrompt = AIRecommendationService.createLearningPathPrompt(user, recommendedCourses, performanceMetrics);
 
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
@@ -136,15 +134,15 @@ export class AIRecommendationService {
 
     } catch (error) {
       console.error('AI Learning Path Error:', error);
-      return this.fallbackMathematicalLearningPath(user, recommendedCourses, userProgress);
+      return AIRecommendationService.fallbackMathematicalLearningPath(user, recommendedCourses, userProgress);
     }
   }
 
-   async generateSequentialLearningPath(user, recommendedCourses, userProgress) {
+  static async generateSequentialLearningPath(user, recommendedCourses, userProgress) {
     try {
-      const performanceMetrics = this.calculatePerformanceMetrics(recommendedCourses, userProgress);
+      const performanceMetrics = AIRecommendationService.calculatePerformanceMetrics(recommendedCourses, userProgress);
       
-      const sequentialPrompt = this.createSequentialPathPrompt(user, recommendedCourses, performanceMetrics);
+      const sequentialPrompt = AIRecommendationService.createSequentialPathPrompt(user, recommendedCourses, performanceMetrics);
 
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
@@ -166,11 +164,111 @@ export class AIRecommendationService {
 
     } catch (error) {
       console.error('AI Sequential Learning Path Error:', error);
-      return this.fallbackMathematicalSequentialPath(user, recommendedCourses, userProgress);
+      return AIRecommendationService.fallbackMathematicalSequentialPath(user, recommendedCourses, userProgress);
     }
   }
 
-   createAdvancedFeedbackPrompt(user, progressData) {
+  static async generateAnalytics(recommendedCourses, userProgress) {
+    try {
+      const performanceMetrics = AIRecommendationService.calculatePerformanceMetrics(recommendedCourses, userProgress);
+      
+      // Calculate category breakdown
+      const categoryBreakdown = {};
+      recommendedCourses.forEach(course => {
+        const courseProgress = userProgress.filter(p => p.courseId === course.id);
+        const completed = courseProgress.filter(p => p.completed).length;
+        const total = course.questions.length;
+        
+        if (!categoryBreakdown[course.category]) {
+          categoryBreakdown[course.category] = { completed: 0, total: 0 };
+        }
+        categoryBreakdown[course.category].completed += completed;
+        categoryBreakdown[course.category].total += total;
+      });
+
+      // Calculate difficulty breakdown
+      const difficultyBreakdown = { easy: { completed: 0, total: 0 }, medium: { completed: 0, total: 0 }, hard: { completed: 0, total: 0 } };
+      recommendedCourses.forEach(course => {
+        course.questions.forEach(question => {
+          const difficulty = question.difficulty || 'medium';
+          const questionProgress = userProgress.find(p => p.questionId === question.id);
+          
+          if (difficultyBreakdown[difficulty]) {
+            difficultyBreakdown[difficulty].total += 1;
+            if (questionProgress && questionProgress.completed) {
+              difficultyBreakdown[difficulty].completed += 1;
+            }
+          }
+        });
+      });
+
+      // Get recent activity
+      const recentActivity = userProgress
+        .filter(p => p.completedAt || p.attempts > 0)
+        .sort((a, b) => {
+          const dateA = new Date(a.completedAt || a.updatedAt || 0);
+          const dateB = new Date(b.completedAt || b.updatedAt || 0);
+          return dateB - dateA;
+        })
+        .slice(0, 10)
+        .map(progress => {
+          const course = recommendedCourses.find(c => c.id === progress.courseId);
+          const question = course?.questions.find(q => q.id === progress.questionId);
+          return {
+            questionTitle: question?.title || 'Unknown Question',
+            courseTitle: course?.title || 'Unknown Course',
+            completed: progress.completed || false,
+            attempts: progress.attempts || 0,
+            date: progress.completedAt || progress.updatedAt || new Date().toISOString()
+          };
+        });
+
+      // Calculate learning streak
+      const learningStreak = AIRecommendationService.calculateLearningStreak(userProgress);
+
+      return {
+        completionRate: performanceMetrics.overallCompletionRate,
+        completedQuestions: performanceMetrics.completedQuestions,
+        totalQuestions: performanceMetrics.totalQuestions,
+        averageAttempts: performanceMetrics.averageAttempts,
+        learningStreak,
+        categoryBreakdown,
+        difficultyBreakdown,
+        recentActivity
+      };
+
+    } catch (error) {
+      console.error('Analytics Generation Error:', error);
+      return AIRecommendationService.fallbackAnalytics(recommendedCourses, userProgress);
+    }
+  }
+
+  static calculateLearningStreak(userProgress) {
+    const completedDates = userProgress
+      .filter(p => p.completedAt)
+      .map(p => new Date(p.completedAt).toDateString())
+      .filter((date, index, self) => self.indexOf(date) === index)
+      .sort((a, b) => new Date(b) - new Date(a));
+
+    if (completedDates.length === 0) return 0;
+
+    let streak = 1;
+    for (let i = 0; i < completedDates.length - 1; i++) {
+      const current = new Date(completedDates[i]);
+      const next = new Date(completedDates[i + 1]);
+      const diffDays = Math.floor((current - next) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  static createAdvancedFeedbackPrompt(user, progressData) {
     return `
 As an advanced AI learning coach, perform a comprehensive analysis of this student's learning patterns and provide sophisticated, data-driven feedback:
 
@@ -231,7 +329,7 @@ Make the feedback clearly demonstrate advanced AI capabilities including:
 `;
   }
 
-   createRecommendationPrompt(userProfile, courseData, performanceMetrics) {
+  static createRecommendationPrompt(userProfile, courseData, performanceMetrics) {
     return `
 Analyze this user's learning profile and recommend exactly 4 courses maximum:
 
@@ -275,7 +373,7 @@ IMPORTANT: Recommend exactly 4 courses maximum, prioritizing quality over quanti
 `;
   }
 
-   createLearningPathPrompt(user, recommendedCourses, performanceMetrics) {
+  static createLearningPathPrompt(user, recommendedCourses, performanceMetrics) {
     return `
 Create a personalized learning path using ONLY the recommended courses:
 
@@ -326,7 +424,7 @@ Use ONLY the provided recommended courses. Design a progressive path that builds
 `;
   }
 
-   createSequentialPathPrompt(user, recommendedCourses, performanceMetrics) {
+  static createSequentialPathPrompt(user, recommendedCourses, performanceMetrics) {
     return `
 Create a sequential learning path using ONLY the recommended courses:
 
@@ -389,7 +487,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
 `;
   }
 
-   calculatePerformanceMetrics(courses, userProgress) {
+  static calculatePerformanceMetrics(courses, userProgress) {
     const categoryPerformance = {};
     let totalQuestions = 0;
     let completedQuestions = 0;
@@ -425,7 +523,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
 
     const categoryRates = Object.entries(categoryPerformance).map(([category, data]) => ({
       category,
-      rate: data.total > 0 ? (data.completed / data.total) * 100 : 0,
+      rate: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0,
       avgAttempts: data.completed > 0 ? data.attempts / data.completed : 0
     }));
 
@@ -460,7 +558,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     };
   }
 
-   calculateLearningVelocity(userProgress) {
+  static calculateLearningVelocity(userProgress) {
     const recentProgress = userProgress
       .filter(p => p.completedAt && new Date(p.completedAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
       .length;
@@ -470,7 +568,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     return 'Low';
   }
 
-   processAIRecommendations(aiResponse, allCourses, userProgress) {
+  static processAIRecommendations(aiResponse, allCourses, userProgress) {
     const recommendations = aiResponse.recommendations.slice(0, 4).map(rec => {
       const course = allCourses.find(c => c.id === rec.courseId);
       if (!course) return null;
@@ -512,7 +610,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     };
   }
 
-   getFactorWeight(factorName) {
+  static getFactorWeight(factorName) {
     const weights = {
       goalAlignment: 35,
       levelMatch: 25,
@@ -523,8 +621,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
     return weights[factorName] || 10;
   }
 
-   fallbackMathematicalSequentialPath(user, recommendedCourses, userProgress) {
-
+  static fallbackMathematicalSequentialPath(user, recommendedCourses, userProgress) {
     const sortedCourses = recommendedCourses.sort((a, b) => {
       const levelOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
       const levelDiff = levelOrder[a.level] - levelOrder[b.level];
@@ -546,36 +643,73 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
         category: course.category,
         estimatedHours: course.estimatedHours,
         priority: index < 2 ? 'high' : index < 3 ? 'medium' : 'low',
-        reasoning: `Step ${index + 1} in your learning journey - builds foundational skills for subsequent courses`,
-        prerequisites: index === 0 ? ['Basic computer literacy'] : [`Complete Step ${index}`],
-        learningOutcomes: [`Master ${course.category} concepts`, 'Build problem-solving skills'],
-        preparesFor: index < sortedCourses.length - 1 ? [`Step ${index + 2} courses`] : ['Advanced projects'],
-        keySkills: course.tags || [course.category],
+        reasoning: `Step ${index + 1} in your learning journey - builds ${index === 0 ? 'foundational' : 'progressive'} skills for subsequent courses`,
+        prerequisites: index === 0 ? ['Basic computer literacy'] : [`Complete "${sortedCourses[index - 1].title}"`],
+        learningOutcomes: [
+          `Master ${course.category} concepts at ${course.level} level`,
+          'Build problem-solving skills',
+          'Apply learned concepts to real-world scenarios'
+        ],
+        preparesFor: index < sortedCourses.length - 1 
+          ? [`"${sortedCourses[index + 1].title}"`, 'More advanced topics']
+          : ['Advanced projects', 'Professional development'],
+        keySkills: course.tags || [course.category, course.level + ' programming'],
         currentProgress
       };
     });
 
+    const totalHours = sortedCourses.reduce((sum, c) => sum + c.estimatedHours, 0);
+    const milestones = [];
+    
+    if (sortedCourses.length > 0) {
+      milestones.push({
+        afterCourse: 1,
+        achievement: `Programming fundamentals mastered - ${sortedCourses[0].category} basics complete`,
+        nextSteps: sortedCourses.length > 1 ? `Ready for "${sortedCourses[1].title}"` : 'Apply skills to projects'
+      });
+    }
+    
+    if (sortedCourses.length > 1) {
+      const midPoint = Math.floor(sortedCourses.length / 2);
+      milestones.push({
+        afterCourse: midPoint + 1,
+        achievement: `Intermediate concepts understood - ${sortedCourses[midPoint].category} proficiency achieved`,
+        nextSteps: sortedCourses.length > midPoint + 1 ? 'Advanced topics ahead' : 'Ready for complex projects'
+      });
+    }
+    
+    if (sortedCourses.length > 2) {
+      milestones.push({
+        afterCourse: sortedCourses.length,
+        achievement: 'Complete learning path - ready for professional development',
+        nextSteps: 'Build portfolio projects, contribute to open source, pursue certifications'
+      });
+    }
+
     return {
-      pathTitle: "Mathematical Sequential Learning Path",
-      description: "A systematic progression through recommended programming concepts",
-      totalEstimatedDuration: `${sortedCourses.reduce((sum, c) => sum + c.estimatedHours, 0)} hours`,
-      difficultyProgression: "Beginner → Intermediate → Advanced",
+      pathTitle: "Your Personalized Sequential Learning Journey",
+      description: `A carefully structured progression through ${sortedCourses.length} recommended courses, designed to build your skills from foundational to advanced concepts`,
+      totalEstimatedDuration: `${totalHours} hours (approximately ${Math.ceil(totalHours / (parseFloat(user.timeAvailability) || 2))} weeks)`,
+      difficultyProgression: "Progressive: Beginner foundations → Intermediate concepts → Advanced mastery",
       courseSequence,
-      learningStrategy: "Progressive skill building with hands-on practice",
-      milestones: [
-        { afterCourse: 1, achievement: "Programming fundamentals mastered", nextSteps: "Ready for intermediate concepts" },
-        { afterCourse: 2, achievement: "Intermediate concepts understood", nextSteps: "Advanced algorithm design" }
+      learningStrategy: "Follow the sequential order to build skills progressively. Each course prepares you for the next, ensuring a solid foundation before advancing to complex topics.",
+      milestones,
+      tips: [
+        "Complete courses in order - each builds on previous knowledge",
+        "Practice consistently - aim for daily coding sessions",
+        "Build small projects after each course to reinforce learning",
+        "Join coding communities for support and collaboration",
+        "Review previous concepts periodically to maintain retention"
       ],
-      tips: ["Practice daily", "Build projects", "Join coding communities"],
       timeManagement: {
-        weeklySchedule: "2-3 hours per course per week",
-        pacing: "Complete one course before starting the next",
-        breaks: "Take 1-2 days break between courses"
+        weeklySchedule: `Dedicate ${user.timeAvailability || '2-3'} hours per week - consistency is key`,
+        pacing: "Complete one course fully before starting the next to maintain focus and depth",
+        breaks: "Take 1-2 days break between courses to review and consolidate learning"
       }
     };
   }
 
-   fallbackMathematicalLearningPath(user, recommendedCourses, userProgress) {
+  static fallbackMathematicalLearningPath(user, recommendedCourses, userProgress) {
     const beginnerCourses = recommendedCourses.filter(c => c.level === 'beginner');
     const intermediateCourses = recommendedCourses.filter(c => c.level === 'intermediate');
     const advancedCourses = recommendedCourses.filter(c => c.level === 'advanced');
@@ -586,16 +720,20 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
       phases.push({
         phaseNumber: 1,
         title: "Foundation Building",
-        description: "Master the basics with recommended courses",
-        duration: "4-6 weeks",
+        description: "Master the basics with recommended beginner courses - establish core programming concepts",
+        duration: `${beginnerCourses.length * 2}-${beginnerCourses.length * 3} weeks`,
         courses: beginnerCourses.map(course => ({
           courseId: course.id,
           title: course.title,
           priority: "high",
-          reasoning: "Essential foundation skills"
+          reasoning: `Essential foundation in ${course.category} - builds core skills needed for advancement`
         })),
-        learningObjectives: ["Basic syntax", "Problem solving"],
-        prerequisites: ["None"]
+        learningObjectives: [
+          "Master basic syntax and programming constructs",
+          "Develop fundamental problem-solving skills",
+          "Build confidence through hands-on practice"
+        ],
+        prerequisites: ["Basic computer literacy", "Willingness to learn"]
       });
     }
     
@@ -603,16 +741,20 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
       phases.push({
         phaseNumber: phases.length + 1,
         title: "Skill Development",
-        description: "Build intermediate skills",
-        duration: "6-8 weeks",
+        description: "Build intermediate skills and deepen understanding of core concepts",
+        duration: `${intermediateCourses.length * 3}-${intermediateCourses.length * 4} weeks`,
         courses: intermediateCourses.map(course => ({
           courseId: course.id,
           title: course.title,
           priority: "medium",
-          reasoning: "Intermediate skill building"
+          reasoning: `Intermediate ${course.category} skills - bridges fundamentals to advanced topics`
         })),
-        learningObjectives: ["Advanced concepts", "Real-world applications"],
-        prerequisites: ["Complete Phase 1"]
+        learningObjectives: [
+          "Apply advanced programming concepts",
+          "Solve real-world problems with code",
+          "Develop algorithmic thinking"
+        ],
+        prerequisites: [`Complete Phase ${phases.length}`, "Strong foundation in basics"]
       });
     }
     
@@ -620,95 +762,183 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
       phases.push({
         phaseNumber: phases.length + 1,
         title: "Advanced Mastery",
-        description: "Master advanced concepts",
-        duration: "8-10 weeks",
+        description: "Master advanced concepts and prepare for professional development",
+        duration: `${advancedCourses.length * 4}-${advancedCourses.length * 5} weeks`,
         courses: advancedCourses.map(course => ({
           courseId: course.id,
           title: course.title,
           priority: "low",
-          reasoning: "Advanced skill mastery"
+          reasoning: `Advanced ${course.category} mastery - professional-level expertise`
         })),
-        learningObjectives: ["Expert-level concepts", "Complex problem solving"],
-        prerequisites: ["Complete previous phases"]
+        learningObjectives: [
+          "Master expert-level concepts",
+          "Solve complex programming challenges",
+          "Prepare for professional roles"
+        ],
+        prerequisites: ["Complete all previous phases", "Strong intermediate skills"]
       });
     }
 
+    const totalEstimatedWeeks = phases.reduce((sum, phase) => {
+      const match = phase.duration.match(/(\d+)-(\d+)/);
+      return sum + (match ? parseInt(match[2]) : 4);
+    }, 0);
+
     return {
-      pathTitle: "Mathematical Learning Path",
-      description: "A systematic approach to learning programming with recommended courses",
-      estimatedDuration: "3-6 months",
+      pathTitle: "Your Structured Learning Path",
+      description: `A systematic ${phases.length}-phase approach to mastering programming with ${recommendedCourses.length} carefully selected courses`,
+      estimatedDuration: `${Math.floor(totalEstimatedWeeks / 4)}-${Math.ceil(totalEstimatedWeeks / 4)} months`,
       phases,
-      tips: ["Practice regularly", "Build projects", "Join coding communities"],
-      milestones: ["Complete first course", "Solve 50 problems", "Build first project"]
+      tips: [
+        "Follow phases sequentially for optimal learning progression",
+        "Practice regularly - consistency beats intensity",
+        "Build projects to apply what you learn",
+        "Join study groups or coding communities",
+        "Review and revisit earlier concepts periodically"
+      ],
+      milestones: [
+        "Complete Phase 1: Programming fundamentals mastered",
+        `Complete Phase ${Math.min(2, phases.length)}: Intermediate proficiency achieved`,
+        `Complete all phases: Ready for professional development`
+      ]
     };
   }
 
-   fallbackDataAnalyticsFeedback(user, userProgress, recommendedCourses) {
-    const totalQuestions = userProgress.length;
-    const completedQuestions = userProgress.filter(p => p.completed).length;
-    const completionRate = totalQuestions > 0 ? Math.round((completedQuestions / totalQuestions) * 100) : 0;
-    const totalAttempts = userProgress.reduce((sum, p) => sum + p.attempts, 0);
-    const avgAttempts = completedQuestions > 0 ? Math.round((totalAttempts / completedQuestions) * 10) / 10 : 0;
+  static fallbackDataAnalyticsFeedback(user, userProgress, recommendedCourses) {
+    const performanceMetrics = AIRecommendationService.calculatePerformanceMetrics(recommendedCourses, userProgress);
+    const totalQuestions = performanceMetrics.totalQuestions;
+    const completedQuestions = performanceMetrics.completedQuestions;
+    const completionRate = performanceMetrics.overallCompletionRate;
+    const avgAttempts = performanceMetrics.averageAttempts;
+    const recentProgress = performanceMetrics.recentActivity;
 
-    const recentProgress = userProgress.filter(p => 
-      p.completedAt && new Date(p.completedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    ).length;
+    const strongCategories = performanceMetrics.strongestCategories;
+    const weakCategories = performanceMetrics.improvementAreas;
 
-    const categoryStats = {};
+    return {
+      aiAnalysis: {
+        learningPatternRecognition: `Data analysis shows ${completionRate}% completion rate with ${avgAttempts} average attempts per question, indicating ${avgAttempts < 2 ? 'efficient' : avgAttempts < 3 ? 'moderate' : 'developing'} learning patterns. Your approach demonstrates ${avgAttempts < 2.5 ? 'strong analytical skills' : 'steady progress with room for optimization'}.`,
+        cognitiveLoadAssessment: `Based on attempt patterns, cognitive load appears ${avgAttempts < 2 ? 'optimal - you grasp concepts quickly' : avgAttempts < 4 ? 'manageable with good comprehension' : 'challenging - consider breaking down complex topics'}. ${avgAttempts > 3 ? 'Adjusting difficulty progression may help.' : 'Current pace supports effective learning.'}`,
+        adaptiveLearningRecommendations: `Analytics suggest ${recentProgress > 5 ? 'maintaining your excellent pace' : recentProgress > 2 ? 'continuing steady progress' : 'increasing study frequency'} for optimal learning outcomes. ${strongCategories.length > 0 ? `Leverage your strength in ${strongCategories[0]} to tackle related challenges.` : 'Focus on building consistent practice habits.'}`
+      },
+      predictiveInsights: {
+        learningTrajectory: `Current trajectory suggests ${completionRate > 70 ? 'excellent' : completionRate > 50 ? 'good' : completionRate > 25 ? 'developing' : 'early-stage'} progress toward mastery. ${completionRate > 60 ? 'You\'re on track to achieve your learning goals ahead of schedule.' : 'Consistent effort will accelerate your progress significantly.'}`,
+        potentialChallenges: weakCategories.length > 0 
+          ? [`Building proficiency in ${weakCategories.join(' and ')}`, 'Maintaining consistency as complexity increases']
+          : ["Maintaining momentum as topics advance", "Balancing breadth and depth of learning"],
+        optimizationOpportunities: [
+          weakCategories.length > 0 ? `Focus additional practice on ${weakCategories[0]} concepts` : 'Explore advanced topics in your strong areas',
+          avgAttempts > 3 ? 'Break down complex problems into smaller steps' : 'Challenge yourself with harder problems',
+          recentProgress < 3 ? 'Increase practice frequency for better retention' : 'Maintain current learning rhythm'
+        ]
+      },
+      personalizedStrategies: {
+        cognitiveApproach: avgAttempts > 3 
+          ? "Break complex problems into smaller, manageable steps. Use pseudocode before coding. Review fundamentals regularly."
+          : avgAttempts > 2
+          ? "Continue your analytical approach. Add more challenging problems to deepen understanding."
+          : "Your efficient problem-solving is excellent. Ready for more advanced concepts.",
+        timeOptimization: `Based on current pace, ${recentProgress < 3 ? 'allocate 30-45 minutes daily' : recentProgress < 6 ? 'maintain 20-30 minutes daily' : 'continue your excellent routine'} for consistent progress. ${recentProgress > 5 ? 'Your frequency is ideal for retention.' : 'More frequent practice will boost retention significantly.'}`,
+        difficultyProgression: completionRate > 80 
+          ? "Ready for more challenging content - consider advanced courses"
+          : completionRate > 60
+          ? "Solid progress - mix current level with occasional harder challenges"
+          : "Consolidate current level concepts before advancing"
+      },
+      motivationalPsychology: {
+        intrinsicMotivators: strongCategories.length > 0 
+          ? [`Success in ${strongCategories.join(' and ')}`, "Problem-solving achievements", "Skill mastery progress"]
+          : ["Learning new concepts", "Overcoming challenges", "Building programming skills"],
+        achievementFramework: `Target ${Math.min(completionRate + 20, 95)}% completion rate over the next ${completionRate < 50 ? '4-6' : '2-4'} weeks. ${completionRate > 50 ? 'You\'re making excellent progress!' : 'Consistent effort will show rapid improvement.'}`,
+        confidenceBuilding: strongCategories.length > 0 
+          ? `Build on your demonstrated strengths in ${strongCategories[0]}. Apply these skills to new challenges for confidence growth.`
+          : "Focus on incremental wins. Each solved problem builds your capability and confidence."
+      },
+      dataInsights: {
+        learningEfficiencyScore: `${Math.max(20, Math.min(100, Math.round(100 - (avgAttempts - 1) * 15)))}/100`,
+        progressPrediction: totalQuestions > completedQuestions
+          ? `Projected to complete current courses in ${Math.ceil((totalQuestions - completedQuestions) / Math.max(1, recentProgress / 7))} weeks at current pace`
+          : "All current courses complete - ready for new challenges!",
+        recommendedAdjustments: avgAttempts > 3 
+          ? ["Review fundamentals before tackling new problems", "Use more examples and practice problems", "Consider video tutorials for complex topics"]
+          : avgAttempts > 2
+          ? ["Maintain current approach", "Add occasional harder challenges"]
+          : ["Excellent efficiency - ready for advanced material", "Consider mentoring others to deepen understanding"]
+      },
+      encouragement: completionRate > 70
+        ? `Outstanding progress at ${completionRate}%! ${strongCategories.length > 0 ? `Your mastery of ${strongCategories[0]} is impressive.` : 'Your dedication is paying off!'} You're well on your way to achieving your programming goals. Keep up this excellent momentum!`
+        : completionRate > 40
+        ? `Solid progress at ${completionRate}%! ${strongCategories.length > 0 ? `You're excelling in ${strongCategories[0]} - great work!` : 'You\'re building strong foundations!'} Stay consistent, and you'll see continued improvement. You've got this!`
+        : `You're building your foundation with ${completionRate}% progress. ${strongCategories.length > 0 ? `Your ${strongCategories[0]} skills are developing well!` : 'Every problem solved is progress!'} Consistent practice will accelerate your growth. Keep pushing forward - breakthrough moments are ahead!`
+    };
+  }
+
+  static fallbackAnalytics(recommendedCourses, userProgress) {
+    const performanceMetrics = AIRecommendationService.calculatePerformanceMetrics(recommendedCourses, userProgress);
+    
+    const categoryBreakdown = {};
     recommendedCourses.forEach(course => {
       const courseProgress = userProgress.filter(p => p.courseId === course.id);
       const completed = courseProgress.filter(p => p.completed).length;
       const total = course.questions.length;
       
-      if (!categoryStats[course.category]) {
-        categoryStats[course.category] = { completed: 0, total: 0 };
+      if (!categoryBreakdown[course.category]) {
+        categoryBreakdown[course.category] = { completed: 0, total: 0 };
       }
-      categoryStats[course.category].completed += completed;
-      categoryStats[course.category].total += total;
+      categoryBreakdown[course.category].completed += completed;
+      categoryBreakdown[course.category].total += total;
     });
 
-    const strongCategories = Object.entries(categoryStats)
-      .filter(([_, stats]) => stats.total > 0 && (stats.completed / stats.total) >= 0.6)
-      .map(([category, _]) => category);
+    const difficultyBreakdown = { easy: { completed: 0, total: 0 }, medium: { completed: 0, total: 0 }, hard: { completed: 0, total: 0 } };
+    recommendedCourses.forEach(course => {
+      course.questions.forEach(question => {
+        const difficulty = question.difficulty || 'medium';
+        const questionProgress = userProgress.find(p => p.questionId === question.id);
+        
+        if (difficultyBreakdown[difficulty]) {
+          difficultyBreakdown[difficulty].total += 1;
+          if (questionProgress && questionProgress.completed) {
+            difficultyBreakdown[difficulty].completed += 1;
+          }
+        }
+      });
+    });
 
-    const weakCategories = Object.entries(categoryStats)
-      .filter(([_, stats]) => stats.total > 0 && (stats.completed / stats.total) < 0.4)
-      .map(([category, _]) => category);
+    const recentActivity = userProgress
+      .filter(p => p.completedAt || p.attempts > 0)
+      .sort((a, b) => {
+        const dateA = new Date(a.completedAt || a.updatedAt || 0);
+        const dateB = new Date(b.completedAt || b.updatedAt || 0);
+        return dateB - dateA;
+      })
+      .slice(0, 10)
+      .map(progress => {
+        const course = recommendedCourses.find(c => c.id === progress.courseId);
+        const question = course?.questions.find(q => q.id === progress.questionId);
+        return {
+          questionTitle: question?.title || 'Unknown Question',
+          courseTitle: course?.title || 'Unknown Course',
+          completed: progress.completed || false,
+          attempts: progress.attempts || 0,
+          date: progress.completedAt || progress.updatedAt || new Date().toISOString()
+        };
+      });
 
     return {
-      aiAnalysis: {
-        learningPatternRecognition: `Data analysis shows ${completionRate}% completion rate with ${avgAttempts} average attempts per question, indicating ${avgAttempts < 2 ? 'efficient' : avgAttempts < 3 ? 'moderate' : 'challenging'} learning patterns.`,
-        cognitiveLoadAssessment: `Based on attempt patterns, cognitive load appears ${avgAttempts < 2 ? 'optimal' : avgAttempts < 4 ? 'manageable' : 'high'}. Consider adjusting difficulty progression.`,
-        adaptiveLearningRecommendations: `Analytics suggest ${recentProgress > 5 ? 'maintaining current pace' : 'increasing study frequency'} for optimal learning outcomes.`
-      },
-      predictiveInsights: {
-        learningTrajectory: `Current trajectory suggests ${completionRate > 70 ? 'excellent' : completionRate > 50 ? 'good' : 'developing'} progress toward learning goals.`,
-        potentialChallenges: weakCategories.length > 0 ? [`Difficulty in ${weakCategories.join(', ')} areas`] : ["No significant challenges identified"],
-        optimizationOpportunities: [`Focus on ${weakCategories.length > 0 ? weakCategories[0] : 'advanced concepts'}`, "Increase practice frequency"]
-      },
-      personalizedStrategies: {
-        cognitiveApproach: avgAttempts > 3 ? "Break down complex problems into smaller steps" : "Continue current problem-solving approach",
-        timeOptimization: `Based on current pace, allocate ${recentProgress < 3 ? 'more' : 'consistent'} time for practice`,
-        difficultyProgression: completionRate > 80 ? "Ready for more challenging content" : "Consolidate current level before advancing"
-      },
-      motivationalPsychology: {
-        intrinsicMotivators: strongCategories.length > 0 ? [`Success in ${strongCategories.join(', ')}`] : ["Problem-solving achievements"],
-        achievementFramework: `Target ${Math.min(completionRate + 20, 100)}% completion rate in next phase`,
-        confidenceBuilding: strongCategories.length > 0 ? `Build on strengths in ${strongCategories[0]}` : "Focus on incremental progress"
-      },
-      dataInsights: {
-        learningEfficiencyScore: `${Math.max(0, 100 - (avgAttempts - 1) * 20)}/100`,
-        progressPrediction: `Projected to complete current courses in ${Math.ceil((totalQuestions - completedQuestions) / Math.max(1, recentProgress))} weeks`,
-        recommendedAdjustments: avgAttempts > 3 ? ["Reduce problem complexity", "Increase review time"] : ["Maintain current approach"]
-      },
-      encouragement: `Your data shows ${completionRate > 50 ? 'strong' : 'developing'} progress! ${strongCategories.length > 0 ? `You excel in ${strongCategories[0]} - leverage this strength!` : 'Keep building your foundation!'}`
+      completionRate: performanceMetrics.overallCompletionRate,
+      completedQuestions: performanceMetrics.completedQuestions,
+      totalQuestions: performanceMetrics.totalQuestions,
+      averageAttempts: performanceMetrics.averageAttempts,
+      learningStreak: AIRecommendationService.calculateLearningStreak(userProgress),
+      categoryBreakdown,
+      difficultyBreakdown,
+      recentActivity
     };
   }
 
-   fallbackRecommendations(user, allCourses, userProgress) {
-
+  static fallbackRecommendations(user, allCourses, userProgress) {
     const scoredCourses = allCourses.map(course => {
-      let score = 50; 
+      let score = 50;
       
       if (user.level === course.level) score += 25;
       else if (user.level === 'beginner' && course.level === 'intermediate') score += 10;
@@ -733,9 +963,9 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
       const completionRate = course.questions.length > 0 ? 
         courseProgress.filter(p => p.completed).length / course.questions.length : 0;
       
-      if (completionRate === 0) score += 10; 
-      if (completionRate === 1) score -= 40; 
-      if (completionRate > 0 && completionRate < 1) score += 5; 
+      if (completionRate === 0) score += 10;
+      if (completionRate === 1) score -= 40;
+      if (completionRate > 0 && completionRate < 1) score += 5;
 
       const timeMap = { '1-3': 1, '4-6': 2, '7-10': 3, '10+': 4 };
       const userTime = timeMap[user.timeAvailability] || 2;
@@ -748,7 +978,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
 
     const recommendations = scoredCourses
       .sort((a, b) => b.score - a.score)
-      .slice(0, 4) 
+      .slice(0, 4)
       .map(({ course, score }) => {
         const courseProgress = userProgress.filter(p => p.courseId === course.id);
         const totalQuestions = course.questions.length;
@@ -764,11 +994,11 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
           },
           recommendation: {
             score: Math.round(score),
-            reasoning: "Recommended based on mathematical analysis of your profile and preferences",
+            reasoning: `Recommended based on your ${user.level} level and ${user.learningGoals?.[0] || 'programming'} goals`,
             factors: [
-              { name: 'Profile Match', score: Math.round(score * 0.8), weight: 50 },
-              { name: 'Content Relevance', score: Math.round(score * 0.9), weight: 30 },
-              { name: 'Learning Path', score: Math.round(score * 0.7), weight: 20 }
+              { name: 'Level Match', score: Math.round(score * 0.8), weight: 50 },
+              { name: 'Goal Alignment', score: Math.round(score * 0.9), weight: 30 },
+              { name: 'Progress Optimization', score: Math.round(score * 0.7), weight: 20 }
             ],
             aiGenerated: false
           }
@@ -777,7 +1007,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
 
     return {
       recommendations,
-      strategy: "Recommendations based on mathematical analysis of your learning preferences and progress",
+      strategy: "Recommendations based on your learning preferences, current level, and progress patterns",
       metadata: {
         algorithm: 'Mathematical Scoring (Fallback)',
         generatedAt: new Date().toISOString(),
