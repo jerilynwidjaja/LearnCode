@@ -3,13 +3,30 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+console.log('Initializing OpenAI client...');
+console.log('API Key present:', !!process.env.OPENAI_API_KEY);
+console.log('API Key length:', process.env.OPENAI_API_KEY?.length || 0);
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+console.log('OpenAI client initialized successfully');
+
+
 export class AIRecommendationService {
   static async generateRecommendations(user, allCourses, userProgress) {
     try {
+      console.log('=== Starting AI Recommendations ===');
+      
+      // Check if OpenAI API key is configured
+      if (!process.env.OPENAI_API_KEY) {
+        console.warn('⚠️ OpenAI API key not configured, using fallback recommendations');
+        return AIRecommendationService.fallbackRecommendations(user, allCourses, userProgress);
+      }
+      
+      console.log('✓ OpenAI API key found');
+
       const userProfile = {
         level: user.level || 'beginner',
         careerStage: user.careerStage || 'student',
@@ -38,6 +55,8 @@ export class AIRecommendationService {
 
       const prompt = AIRecommendationService.createRecommendationPrompt(userProfile, courseData, performanceMetrics);
 
+      console.log('✓ Prompt created, calling OpenAI API...');
+
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
         messages: [
@@ -54,12 +73,30 @@ export class AIRecommendationService {
         max_tokens: 2000
       });
 
-      const aiResponse = JSON.parse(completion.choices[0].message.content);
+      console.log('✓ OpenAI API call successful');
+      console.log('Response content:', completion.choices[0].message.content.substring(0, 200) + '...');
       
-      return AIRecommendationService.processAIRecommendations(aiResponse, allCourses, userProgress);
+      const aiResponse = JSON.parse(completion.choices[0].message.content);
+      console.log('✓ JSON parsed successfully');
+      console.log('Number of recommendations:', aiResponse.recommendations?.length);
+      
+      const result = AIRecommendationService.processAIRecommendations(aiResponse, allCourses, userProgress);
+      console.log('✓ AI Recommendations processed successfully');
+      console.log('=== AI Recommendations Complete ===');
+      
+      return result;
 
     } catch (error) {
-      console.error('AI Recommendation Error:', error);
+      console.error('❌ AI Recommendation Error:', error.name);
+      console.error('Error message:', error.message);
+      if (error.response) {
+        console.error('API Response status:', error.response.status);
+        console.error('API Response data:', error.response.data);
+      }
+      if (error.stack) {
+        console.error('Stack trace:', error.stack.split('\n').slice(0, 3).join('\n'));
+      }
+      console.log('→ Falling back to mathematical recommendations');
       return AIRecommendationService.fallbackRecommendations(user, allCourses, userProgress);
     }
   }
@@ -547,7 +584,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
       overallCompletionRate: totalQuestions > 0 ? Math.round((completedQuestions / totalQuestions) * 100) : 0,
       strongestCategories,
       improvementAreas,
-      learningVelocity: this.calculateLearningVelocity(userProgress),
+      learningVelocity: AIRecommendationService.calculateLearningVelocity(userProgress),
       courseProgress,
       categoryPerformance: categoryRates,
       totalQuestions,
@@ -578,31 +615,60 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
       const completedQuestions = courseProgress.filter(p => p.completed).length;
       const progressPercentage = totalQuestions > 0 ? Math.round((completedQuestions / totalQuestions) * 100) : 0;
 
-      return {
+      const processedCourse = {
         ...course.toJSON(),
         progress: {
           completed: completedQuestions,
           total: totalQuestions,
           percentage: progressPercentage
         },
+        // Flatten recommendation data to course level for frontend
+        aiScore: rec.score,
+        aiReasoning: rec.reasoning,
+        aiLearningPath: rec.learningPath,
+        // Extract specific factor insights
+        aiGoalAlignment: `${rec.factors.goalAlignment}% match with your learning goals`,
+        aiSkillAlignment: `${rec.factors.skillBuilding}% skill development potential`,
+        aiCareerImpact: `${rec.factors.levelMatch}% appropriate for your ${course.level} level`,
+        aiExpectedOutcome: rec.learningPath,
+        // Keep full recommendation object for backward compatibility
         recommendation: {
           score: rec.score,
           reasoning: rec.reasoning,
           factors: Object.entries(rec.factors).map(([name, score]) => ({
             name: name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
             score,
-            weight: this.getFactorWeight(name)
+            weight: AIRecommendationService.getFactorWeight(name)
           })),
           learningPath: rec.learningPath,
           aiGenerated: true
         }
       };
+      
+      console.log(`Course ${course.id} recommendation:`, {
+        title: course.title,
+        score: rec.score,
+        hasAiScore: !!processedCourse.aiScore,
+        aiScore: processedCourse.aiScore
+      });
+      
+      return processedCourse;
     }).filter(Boolean);
+
+    console.log('✓ Total recommendations processed:', recommendations.length);
+    console.log('Sample recommendation structure:', recommendations[0] ? {
+      id: recommendations[0].id,
+      title: recommendations[0].title,
+      hasAiScore: !!recommendations[0].aiScore,
+      aiScore: recommendations[0].aiScore,
+      hasRecommendation: !!recommendations[0].recommendation
+    } : 'No recommendations');
 
     return {
       recommendations,
       strategy: aiResponse.overallStrategy,
       metadata: {
+        aiUsed: true,
         algorithm: 'OpenAI GPT-3.5 Turbo',
         generatedAt: new Date().toISOString(),
         model: 'AI-Powered Personalized Learning'
@@ -985,6 +1051,10 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
         const completedQuestions = courseProgress.filter(p => p.completed).length;
         const progressPercentage = totalQuestions > 0 ? Math.round((completedQuestions / totalQuestions) * 100) : 0;
 
+        const levelMatchScore = Math.round(score * 0.8);
+        const goalAlignmentScore = Math.round(score * 0.9);
+        const skillBuildingScore = Math.round(score * 0.7);
+
         return {
           ...course.toJSON(),
           progress: {
@@ -992,13 +1062,22 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
             total: totalQuestions,
             percentage: progressPercentage
           },
+          // Flatten recommendation data to course level for frontend
+          aiScore: Math.round(score),
+          aiReasoning: `Recommended based on your ${user.level} level and ${user.learningGoals?.[0] || 'programming'} goals. This course matches your profile and learning objectives.`,
+          aiLearningPath: `This course builds foundational skills that align with your career path in ${user.careerStage || 'software development'}.`,
+          aiGoalAlignment: `${goalAlignmentScore}% match with your learning goals`,
+          aiSkillAlignment: `${skillBuildingScore}% skill development potential`,
+          aiCareerImpact: `${levelMatchScore}% appropriate for your ${user.level || 'current'} level`,
+          aiExpectedOutcome: `Complete this course to strengthen your ${course.category} skills and prepare for more advanced topics.`,
+          // Keep full recommendation object for backward compatibility
           recommendation: {
             score: Math.round(score),
             reasoning: `Recommended based on your ${user.level} level and ${user.learningGoals?.[0] || 'programming'} goals`,
             factors: [
-              { name: 'Level Match', score: Math.round(score * 0.8), weight: 50 },
-              { name: 'Goal Alignment', score: Math.round(score * 0.9), weight: 30 },
-              { name: 'Progress Optimization', score: Math.round(score * 0.7), weight: 20 }
+              { name: 'Level Match', score: levelMatchScore, weight: 50 },
+              { name: 'Goal Alignment', score: goalAlignmentScore, weight: 30 },
+              { name: 'Progress Optimization', score: skillBuildingScore, weight: 20 }
             ],
             aiGenerated: false
           }
@@ -1009,6 +1088,7 @@ IMPORTANT: Use ONLY the provided recommended courses. Order them logically from 
       recommendations,
       strategy: "Recommendations based on your learning preferences, current level, and progress patterns",
       metadata: {
+        aiUsed: false,
         algorithm: 'Mathematical Scoring (Fallback)',
         generatedAt: new Date().toISOString(),
         model: 'Rule-Based Recommendation'
